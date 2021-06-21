@@ -120,63 +120,75 @@ export default async function classworkLinter(
     };
   }
 
-  if (typeof source !== 'string') {
-    try {
-      source = source.join('\n');
-    } catch (e) {
-      source = source.toString();
+  try {
+    if (typeof source !== 'string') {
+      try {
+        source = source.join('\n');
+      } catch (e) {
+        source = source.toString();
+      }
     }
-  }
-
-  for (let x in config.ignoreChars) {
-    let chars = config.ignoreChars[x];
-    let stringRegex = chars.endWith ? `(${chars.startWith})(.+?)(${chars.endWith})` : `(${chars.startWith})`;
-
-    let regex = new RegExp(stringRegex, 'gs');
-    source = source.replace(regex, chars.replace ? chars.replace : '');
-  }
-
-  let regex = new RegExp('}', 'g');
-  source = source.replace(regex, '};');
-
-  //Infelizmente, isso se trata de um erro que ainda n resolvi no
-  //lizard-py. Eu não entendo mto de python e n tem mta info sobre o autor
-  filename = filename.replace(".js", ".java").replace(".ts", ".java").replace(".tsx", ".java");
-
-  const response = (await analyzeSourceCode(filename, source)) as OldLizardObject;
-  let cyclomaticComplexity = 0;
-
-  for (let x in response.function_list) {
-    let f = response.function_list[x];
-
-    cyclomaticComplexity += f.cyclomatic_complexity;
-  }
-
-  let methods = response.function_list.map((item) => {
-    let funcName = item.long_name.replace(/\( /gs, '(').replace(/\[ /gs, '[');
-
+  
+    for (let x in config.ignoreChars) {
+      let chars = config.ignoreChars[x];
+      let stringRegex = chars.endWith ? `(${chars.startWith})(.+?)(${chars.endWith})` : `(${chars.startWith})`;
+  
+      let regex = new RegExp(stringRegex, 'gs');
+      source = source.replace(regex, chars.replace ? chars.replace : '');
+    }
+  
+    let regex = new RegExp('}', 'g');
+    source = source.replace(regex, '};');
+  
+    //Infelizmente, isso se trata de um erro que ainda nãp resolvi no
+    //lizard-py. Eu não entendo muito de python e não tenho muita informação sobre o 
+    //autor para entrar em contato
+    filename = filename.replace(".js", ".java").replace(".ts", ".java").replace(".tsx", ".java");
+    
+    const response = (await analyzeSourceCode(filename, source)) as OldLizardObject;
+    let cyclomaticComplexity = 0;
+  
+    for (let x in response.function_list) {
+      let f = response.function_list[x];
+  
+      cyclomaticComplexity += f.cyclomatic_complexity;
+    }
+  
+    let methods = response.function_list.map((item) => {
+      let funcName = item.long_name.replace(/\( /gs, '(').replace(/\[ /gs, '[');
+  
+      return {
+        name: item.name,
+        longName: funcName,
+        cyclomaticComplexity: item.cyclomatic_complexity,
+        startLine: item.start_line,
+        endLine: item.end_line,
+        parameters: item.parameters,
+        filename: item.filename,
+        topNestingLevel: item.top_nesting_level,
+        length: item.length,
+        fanIn: item.fan_in,
+        fanOut: item.fan_out,
+        generalFanOut: item.general_fan_out,
+      };
+    });
+  
     return {
-      name: item.name,
-      longName: funcName,
-      cyclomaticComplexity: item.cyclomatic_complexity,
-      startLine: item.start_line,
-      endLine: item.end_line,
-      parameters: item.parameters,
-      filename: item.filename,
-      topNestingLevel: item.top_nesting_level,
-      length: item.length,
-      fanIn: item.fan_in,
-      fanOut: item.fan_out,
-      generalFanOut: item.general_fan_out,
+      qtdLines: response.nloc,
+      qtdMethods: response.function_list.length,
+      cyclomaticComplexity,
+      token: response.token_count,
+      methods,
+      source,
     };
-  });
-
-  return {
-    qtdLines: response.nloc,
-    qtdMethods: response.function_list.length,
-    cyclomaticComplexity,
-    token: response.token_count,
-    methods,
-    source,
-  };
+  } catch (error) {
+    return {
+      qtdLines: 0,
+      qtdMethods: 0,
+      cyclomaticComplexity: 0,
+      token: 0,
+      methods: [],
+      source: `[error]: ${error}`,
+    };
+  }
 }
