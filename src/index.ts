@@ -131,9 +131,9 @@ export default async function classworkLinter(
   
     for (let x in config.ignoreChars) {
       let chars = config.ignoreChars[x];
-      let stringRegex = chars.endWith ? `(${chars.startWith})(.+?)(${chars.endWith})` : `(${chars.startWith})`;
+      let stringRegex = chars.endWith ? `(${chars.startWith})(.+)(${chars.endWith})` : `(${chars.startWith})`;
   
-      let regex = new RegExp(stringRegex, 'gs');
+      let regex = new RegExp(stringRegex, 'g');
       source = source.replace(regex, chars.replace ? chars.replace : '');
     }
   
