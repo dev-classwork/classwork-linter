@@ -31,7 +31,7 @@ interface LinterConfig {
    *
    * Aviso: só altere os valores padrões se necessário.
    */
-  ignoreChars: { startWith: string; endWith?: string; replace?: string }[];
+  ignoreChars: { startWith?: string; endWith?: string; replace?: string; direct?: string }[];
 }
 
 interface OldLizardObject {
@@ -81,8 +81,7 @@ interface LizardObject {
 let defaultConfigLinter: LinterConfig = {
   ignoreChars: [
     {
-      startWith: '\\/\\*',
-      endWith: '\\*\\/',
+      direct: `\/\*{1,2}[\s\S]*?\*\/`,
     },
     {
       startWith: `"`,
@@ -95,8 +94,11 @@ let defaultConfigLinter: LinterConfig = {
       replace: `''`,
     },
     {
-      startWith: '\\/\\/',
-      endWith: '\\n',
+      startWith: `//`,
+      endWith: `\n`,
+    },
+    {
+      direct: `^\s*\n`,
     },
     {
       startWith: ` \\{`,
@@ -131,7 +133,9 @@ export default async function classworkLinter(
   
     for (let x in config.ignoreChars) {
       let chars = config.ignoreChars[x];
-      let stringRegex = chars.endWith ? `(${chars.startWith})(.+)(${chars.endWith})` : `(${chars.startWith})`;
+      let stringRegex = chars.startWith?
+      chars.endWith ? `(${chars.startWith})(.+)(${chars.endWith})` : `(${chars.startWith})`:
+      `${chars.direct}`;
   
       let regex = new RegExp(stringRegex, 'g');
       source = source.replace(regex, chars.replace ? chars.replace : '');
